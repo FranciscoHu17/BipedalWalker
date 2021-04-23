@@ -7,12 +7,24 @@ If on Windows:
 - Install Anaconda at https://www.anaconda.com/products/individual
 - Verify your installation in Anaconda Prompt with the command ```conda list``` which should display a list of installed packages
 - Also verify that python is working by entering the command ```python```
-- Install ```gym``` by running ```conda install -c conda-forge gym```
+- Run ```conda install swig```
+- Make sure you have Microsoft Visual C++ 14.0 or greater
+- Install ```gym``` by running
+```
+git clone https://github.com/openai/gym
+cd gym
+pip install -e .[box2d]
+```
 - Install ```tensorflow``` by runnning ```py -m pip install tensorflow```
 - Navigate to the location of the walker.py file and run ```py walker.py```
 
 If on Linux:
-- Install ```gym``` by running ```pip install gym``` in the terminal
+- Install ```gym``` by running
+```
+git clone https://github.com/openai/gym
+cd gym
+pip install -e .[box2d]
+```
 - Install ```tensorflow``` by runnning ```pip install tensorflow```
 - Navigate to the location of the walker.py file and run ```python walker.py```
 
