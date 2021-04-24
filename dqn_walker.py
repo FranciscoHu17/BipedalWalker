@@ -65,9 +65,12 @@ class Agent:
             action = self.action_space.sample()
         else:
             state = np.array([observation])
+            #print(state.shape)
+            #print(observation)
             actions = self.dqn_model.predict(state)
-
-            action = np.argmax(actions)
+            #print(actions[0])
+            #action = np.argmax(actions[0])
+            action = actions[0]
 
         return action
     
@@ -76,10 +79,10 @@ class Agent:
 
         q_eval = self.dqn_model.predict(states)
         q_next = self.dqn_model.predict(next_states)    
-        q_target = np.copy(q_eval)
+        #q_target = np.copy(q_eval)
+
         sample_index = np.arange(self.sample_size, dtype=np.int32)
-        print(q_target[sample_index].shape)
-        q_target[sample_index] = rewards + (self.gamma*np.max(q_next, axis=1))*dones
+        q_target = rewards + (self.gamma*np.max(q_next, axis=1))*dones
 
         self.dqn_model.train_on_batch(states, q_target)
         self.epsilon = self.epsilon - self.eps_dec if self.epsilon > self.eps_min else self.eps_min
@@ -107,6 +110,8 @@ if '__main__' == __name__:
         observation = env.reset()
 
         while not done:
+            if (game+1)%50 == 0: 
+                env.render()
             action = agent.choose_action(observation)
             next_observation, reward, done, info = env.step(action)
             agent.step(observation, action, reward, next_observation, done)
