@@ -6,9 +6,9 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import load_model
 from collections import deque
 import random
+import pickle
+import datetime
 
-
-SAMPLE_SIZE = 16
 
 class ExperienceReplay:
     def __init__(self, max_size):
@@ -31,9 +31,10 @@ class ExperienceReplay:
 
 def build_dqn(lr, n_actions, input_shape, fc1_shape, fc2_shape):
     model = keras.Sequential([
+        #keras.layers.Dense(input_shape[0], activation='relu'),
         keras.layers.Dense(fc1_shape, activation='relu'),
         keras.layers.Dense(fc2_shape, activation='relu'),
-        keras.layers.Dense(n_actions, activation=None)
+        keras.layers.Dense(n_actions, activation='tanh')
     ])
 
     model.compile(optimizer=Adam(learning_rate=lr), loss ='mean_squared_error')
@@ -51,7 +52,7 @@ class Agent:
                 self.sample_size = sample_size
                 self.model_file = file_name
                 self.memory = ExperienceReplay(mem_size)
-                self.dqn_model = build_dqn(lr, action_space.shape[0], input_shape, 256, 256)
+                self.dqn_model = build_dqn(lr, action_space.shape[0], input_shape, 400, 300)
 
     def step(self, state, action, reward, new_state, done):
         self.memory.store_transition(state, action, reward, new_state, done)
@@ -93,36 +94,100 @@ class Agent:
     def load_model(self):
         self.dqn_model = load_model(self.model_file)
 
+
+def replay_actions(env, actions):
+    done = False
+    state = env.reset()
+    for action in actions:
+        env.render()
+        env.step(action)
+    env.close()
+
+def store_actions(model, actions):
+    actions_file = open(model+'_actions','wb')
+    pickle.dump(actions, actions_file)
+    actions_file.close()
+
+def load_actions(model):
+    actions_file = open(model+'_actions','rb')
+    actions = pickle.load(actions_file)
+    actions_file.close()
+
+    return actions
+
+
 if '__main__' == __name__:
     tf.compat.v1.disable_eager_execution()
     env = gym.make('BipedalWalker-v3')
-    lr = .001
-    n_games = 500
+    lr = 1e-4
+    n_games = 10000
+
     agent = Agent(lr=lr, gamma=0.99, action_space=env.action_space, epsilon=1.0,
                  sample_size=64, input_shape=env.observation_space.shape)
     
+    load = input("load from model? [y/n]: ")
+    if load == "y":
+        load = input("input file name to load: ")
+        agent.model_file = load
+        agent.load_model()
+        actions = load_actions(load)
+        print()
+        print("loading model from", load)
+        print()
+        replay_actions(env, actions)
+    
+    max_score = -10000
+    max_game = 0
     scores = []
     eps_history = []
+
+    start = datetime.datetime.now()
 
     for game in range(n_games):
         done = False
         score = 0
         observation = env.reset()
+        game_actions = [] # actions taken during this game
+        episode_start = datetime.datetime.now()
 
         while not done:
-            if (game+1)%50 == 0: 
-                env.render()
+            #if (game+1)%50 == 0: 
+            #    env.render()
             action = agent.choose_action(observation)
+            game_actions.append(action)
             next_observation, reward, done, info = env.step(action)
             agent.step(observation, action, reward, next_observation, done)
+            
             score += reward
             observation = next_observation
 
         eps_history.append(agent.epsilon)
         scores.append(score)
+        episode_end = datetime.datetime.now()
 
         avg_score = np.mean(scores[-100:])
-        print('game', game, ': average score:', avg_score, '\t\tepsilon: ', agent.epsilon)
-
         
+        if score > max_score:
+            max_score = score
+            max_game = game
+            replay_actions(env, game_actions)
 
+            agent.model_file = "dqn_walker"
+            agent.save_model()
+            store_actions(agent.model_file, game_actions)
+            print("saving model as", agent.model_file)
+            print()
+
+        elapsed = episode_end - episode_start
+
+        print('game:', game)
+        print('reward:', str(score))
+        print("max game:", str(max_game), "\tmax reward:", str(max_score))
+        print('average score for the last 100 games:', avg_score)
+        print('time:', str(elapsed.total_seconds()),'seconds')
+        print()
+
+    end = datetime.datetime.now()
+    elapsed = end - start
+
+    print('Total time:',elapsed.total_seconds(), 'seconds')
