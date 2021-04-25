@@ -14,7 +14,7 @@ def simulate():
         observation = env.reset()
         
         for t in range(goal_steps):
-            #env.render()
+            env.render()
             action = env.action_space.sample()
             observation, reward, done, info = env.step(action)
 
@@ -35,7 +35,7 @@ def simulate():
     env.close()
 
     
-    #neural_network(np.array(training), np.array(accepted))
+    # neural_network(np.array(training), np.array(accepted))
 
     #print(Counter(accepted))
     print("Accepted Mean:", mean(accepted))
@@ -44,13 +44,14 @@ def simulate():
     print("All Median:", median(scores))
 
 
-def neural_network(data, accepted):
-    dataset = tf.data.Dataset.from_tensor_slices((data, accepted))
+# def neural_network(data, accepted):
+#     dataset = tf.data.Dataset.from_tensor_slices((data, accepted))
 
 def train_model(data):
     X = 1
 
 if '__main__' == __name__:
+    print('here')
     env = gym.make('BipedalWalker-v3')
 
     LR = 1e-3   # Learning Rate
