@@ -125,6 +125,8 @@ if '__main__' == __name__:
     agent = Agent(lr=lr, gamma=0.99, action_space=env.action_space, epsilon=1.0,
                  sample_size=64, input_shape=env.observation_space.shape)
     
+    visual = input("visualize? [y/n]: ")
+    print()
     load = input("load from model? [y/n]: ")
     if load == "y":
         load = input("input file name to load: ")
@@ -134,7 +136,8 @@ if '__main__' == __name__:
         print()
         print("loading model from", load)
         print()
-        replay_actions(env, actions)
+        if visual == "y": 
+            replay_actions(env, actions)
     
     max_score = -10000
     max_game = 0
@@ -151,8 +154,6 @@ if '__main__' == __name__:
         episode_start = datetime.datetime.now()
 
         while not done:
-            #if (game+1)%50 == 0: 
-            #    env.render()
             action = agent.choose_action(observation)
             game_actions.append(action)
             next_observation, reward, done, info = env.step(action)
@@ -170,13 +171,15 @@ if '__main__' == __name__:
         if score > max_score:
             max_score = score
             max_game = game
-            replay_actions(env, game_actions)
 
             agent.model_file = "dqn_walker"
             agent.save_model()
             store_actions(agent.model_file, game_actions)
             print("saving model as", agent.model_file)
             print()
+
+            if visual == "y":
+                replay_actions(env, game_actions)
 
         elapsed = episode_end - episode_start
 
