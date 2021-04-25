@@ -194,3 +194,7 @@ if '__main__' == __name__:
     elapsed = end - start
 
     print('Total time:',elapsed.total_seconds(), 'seconds')
+
+    scores_file = open(agent.model_file+'_scores','wb')
+    pickle.dump(scores, scores_file)
+    scores_file.close()
