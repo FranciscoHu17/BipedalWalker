@@ -5,9 +5,10 @@ from collections import deque
 
 
 class ExperienceReplay:
-    def __init__(self, buffer_size, batch_size):
+    def __init__(self, buffer_size, batch_size, device):
         self.buffer = deque(maxlen=buffer_size)
         self.batch_size= batch_size
+        self.device = device
 
     def __len__(self):
         return len(self.buffer)
@@ -22,9 +23,9 @@ class ExperienceReplay:
     def sample(self):
         sample = random.sample(self.buffer, self.batch_size)
         states, actions, rewards, next_states, dones = zip(*sample)
-        states = torch.from_numpy(np.array(states, dtype=np.float32))
-        actions = torch.from_numpy(np.array(actions, dtype=np.float32))
-        rewards = torch.from_numpy(np.array(rewards, dtype=np.float32).reshape(-1, 1))
-        next_states = torch.from_numpy(np.array(next_states, dtype=np.float32))
-        dones = torch.from_numpy(np.array(dones, dtype=np.uint8).reshape(-1, 1)).float()
+        states = torch.from_numpy(np.array(states, dtype=np.float32)).to(self.device)
+        actions = torch.from_numpy(np.array(actions, dtype=np.float32)).to(self.device)
+        rewards = torch.from_numpy(np.array(rewards, dtype=np.float32).reshape(-1, 1)).to(self.device)
+        next_states = torch.from_numpy(np.array(next_states, dtype=np.float32)).to(self.device)
+        dones = torch.from_numpy(np.array(dones, dtype=np.uint8).reshape(-1, 1)).float().to(self.device)
         return (states, actions, rewards, next_states, dones)

@@ -14,18 +14,20 @@ def main():
     buffer_size = 1000000
     batch_size = 100
     noise = 0.1
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    policy = TD3(state_dim, action_dim, max_action, env)
+    policy = TD3(state_dim, action_dim, max_action, env, device)
     try:
         policy.load()
     except Exception as e:
         print('No previous model to load.')
 
-    buffer = ExperienceReplay(buffer_size, batch_size)
+    buffer = ExperienceReplay(buffer_size, batch_size, device)
 
     episodes = 5000
     timesteps = 2000
 
+    best_reward = 0
     curr_reward = []
 
     for episode in range(episodes):
@@ -33,7 +35,7 @@ def main():
         state = env.reset()
         for i in range(timesteps):
             # Same as the TD3, select an action and add noise:
-            if(i% 100 == 0):
+            if(i % 200 == 0):
                 print('Finished', i, 'timesteps')
             action = policy.select_action(state) + np.random.normal(0, max_action * noise, size=action_dim)
             action = action.clip(env.action_space.low, env.action_space.high)
@@ -55,7 +57,8 @@ def main():
             policy.save()
             break
 
-        if(episode % 100 == 0 and episode > 0):
+        if((episode % 100 == 0 and episode > 0) or avg_reward > best_reward):
+            best_reward = avg_reward
             #Save policy and optimizer every 100 episodes
             policy.save()
     
