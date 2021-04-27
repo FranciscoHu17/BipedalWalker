@@ -1,57 +1,73 @@
-import gym
 import numpy as np
-import torch 
-
-from statistics import mean, median
-from collections import Counter
-
-
-def simulate(env, num_iterations, learning_rate, goal_steps, score_req):  
-  training = []
-  scores = []
-  accepted = []
-  for game in range(num_iterations):
-    score = 0
-    curr_run = []
-    observation = env.reset()
-
-    for t in range(goal_steps):
-        env.render()
-        action = env.action_space.sample()
-        observation, reward, done, info = env.step(action)
-
-        curr_run.append([observation, action])
-        score += reward
-
-        if done:
-            # Agent fell to the ground
-            print("Episode finished after {} timesteps".format(t+1))
-            break
-
-    scores.append(score)
-    if score >= score_req:
-        accepted.append(score)
-        for data in curr_run:
-            training.append(data)
-
-  env.close()
-
-  print("Accepted Mean:", mean(accepted))
-  print("Accepted Median:", median(accepted))
-  print("All Mean:", mean(scores))
-  print("All Median:", median(scores))
-
+import gym
+import torch
+import random
+from td3 import TD3
+from buffer import ExperienceReplay
+import matplotlib.pyplot as plt
 
 def main():
-    print('Running TD3 algorithm on BipedalWalker-v3.')
     env = gym.make('BipedalWalker-v3')
+    state_dim = env.observation_space.shape[0]
+    action_dim = env.action_space.shape[0]
+    max_action = float(env.action_space.high[0])
+    buffer_size = 1000000
+    batch_size = 100
+    noise = 0.1
 
-    LR = 1e-3   # Learning Rate
-    goal_steps = 500
-    score_req = -100
-    iterations = 10
+    policy = TD3(state_dim, action_dim, max_action, env)
+    try:
+        policy.load()
+    except Exception as e:
+        print('No previous model to load.')
 
-    simulate(env, iterations, LR, goal_steps, score_req)
+    buffer = ExperienceReplay(buffer_size, batch_size)
+
+    episodes = 5000
+    timesteps = 2000
+
+    curr_reward = []
+
+    for episode in range(episodes):
+        avg_reward = 0
+        state = env.reset()
+        for i in range(timesteps):
+            # Same as the TD3, select an action and add noise:
+            if(i% 100 == 0):
+                print('Finished', i, 'timesteps')
+            action = policy.select_action(state) + np.random.normal(0, max_action * noise, size=action_dim)
+            action = action.clip(env.action_space.low, env.action_space.high)
+            # Make an action. 
+            next_state, reward, done, _ = env.step(action)
+            buffer.store_transition(state, action, reward, next_state, done)
+            state = next_state
+            avg_reward += reward
+            env.render()
+            if(len(buffer) > batch_size):
+                policy.train(buffer, i)
+            if(done or i > timesteps):
+                print('Episode ', episode,'finished with reward:', avg_reward)
+                print('Finished at timestep ', i)
+                curr_reward.append(avg_reward)
+                break
+        print('Finished 2000 timesteps')
+        if(np.mean(reward[-100:]) >= 300):
+            policy.save()
+            break
+
+        if(episode % 100 == 0 and episode > 0):
+            #Save policy and optimizer every 100 episodes
+            policy.save()
+    
+
+    fig = plt.figure()
+    plt.plot(np.arange(1, len(ep_reward) + 1), ep_reward)
+    plt.ylabel('Score')
+    plt.xlabel('Episode #')
+    plt.show()
+
+    
+
 
 
 main()
