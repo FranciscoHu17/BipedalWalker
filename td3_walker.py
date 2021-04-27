@@ -60,11 +60,11 @@ def main():
             policy.save()
     
 
-    fig = plt.figure()
-    plt.plot(np.arange(1, len(ep_reward) + 1), ep_reward)
-    plt.ylabel('Score')
-    plt.xlabel('Episode #')
-    plt.show()
+    # fig = plt.figure()
+    # plt.plot(np.arange(1, len(ep_reward) + 1), ep_reward)
+    # plt.ylabel('Score')
+    # plt.xlabel('Episode #')
+    # plt.show()
 
     
 
