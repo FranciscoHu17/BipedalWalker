@@ -51,7 +51,7 @@ def main():
                 curr_reward.append(avg_reward)
                 break
         print('Finished 2000 timesteps')
-        if(np.mean(reward[-100:]) >= 300):
+        if(np.mean(curr_reward[-100:]) >= 300):
             policy.save()
             break
 
