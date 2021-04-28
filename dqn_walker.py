@@ -1,99 +1,140 @@
-import gym
 import numpy as np
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.models import load_model
-from collections import deque
+import torch
 import random
-import pickle
+import gym
+from collections import deque
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
 import datetime
+import pickle
 
+
+ENV = "BipedalWalker-v3"
+MODEL_FILE = "./dqn_model"
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# Hyperparameters
+N_GAMES = 5000
+MEM_SIZE = 1000000
+BATCH_SIZE = 64
+TARGET_UPDATE = 10
+GAMMA = 0.99
+EPSILON = 1
+EPSILON_DEC = 1e-3
+EPSILON_MIN = 0.01
+LR = 1e-4
 
 class ExperienceReplay:
-    def __init__(self, max_size):
-        self.memory = deque(maxlen=max_size)
+    def __init__(self, buffer_size):
+        self.buffer = deque(maxlen=buffer_size)
 
     def __len__(self):
-        return len(self.memory)
+        return len(self.buffer)
 
-    # Add a transition to the memory
+    # Add a transition to the memory by basic SARNS convention. 
     def store_transition(self, state, action, reward, new_state, done):
-        self.memory.append((state, action, reward, new_state, done))
+        # If buffer is abuot to overflow, begin rewriting existing memory? 
+        self.buffer.append((state, action, reward, new_state, done))
 
-    # Sample only the memory that has been stored
-    def sample_memory(self, sample_size):
-        sample = random.sample(self.memory, sample_size)
+    # Sample only the memory that has been stored. Samples BATCH
+    # amount of samples. 
+    def sample(self):
+        sample = random.sample(self.buffer, BATCH_SIZE)
         states, actions, rewards, next_states, dones = zip(*sample)
+        states = torch.tensor(states).float().to(DEVICE)
+        actions = torch.stack(actions).long().to(DEVICE)
+        rewards = torch.tensor(rewards).float().to(DEVICE)
+        next_states = torch.tensor(next_states).float().to(DEVICE)
+        dones = torch.tensor(dones).float().to(DEVICE)
+        return (states, actions, rewards, next_states, dones)
 
-        return (np.array(states), np.array(actions), np.array(rewards),
-                np.array(next_states), np.array(dones))
+class QNetwork(nn.Module):
+    def __init__(self, state_dim, action_dim, max_action):
+        super(QNetwork, self).__init__()
+        # Make a simple 3 later linear network
+        self.l1 = nn.Linear(state_dim, 400)
+        self.l2 = nn.Linear(400, 300)
+        self.l3 = nn.Linear(300, action_dim)
+        self.max_action = max_action
 
-def build_dqn(lr, n_actions, input_shape, fc1_shape, fc2_shape):
-    model = keras.Sequential([
-        #keras.layers.Dense(input_shape[0], activation='relu'),
-        keras.layers.Dense(fc1_shape, activation='relu'),
-        keras.layers.Dense(fc2_shape, activation='relu'),
-        keras.layers.Dense(n_actions, activation='tanh')
-    ])
+    def forward(self, state):
+        x = self.l1(state)
+        x = F.relu(x)
+        x = F.relu(self.l2(x))
+        x = self.max_action * torch.tanh(self.l3(x))
+        return x
 
-    model.compile(optimizer=Adam(learning_rate=lr), loss ='mean_squared_error')
+class Agent():
+    # Initialize the agent
+    def __init__(self, state_space, action_space):
+        self.memory = ExperienceReplay(MEM_SIZE)
+        self.action_space = action_space
+        self.main_model = QNetwork(state_space.shape[0], action_space.shape[0], action_space.high[0]).to(DEVICE)
+        self.target_model = QNetwork(state_space.shape[0], action_space.shape[0], action_space.high[0]).to(DEVICE)
+        self.optimizer = optim.Adam(self.main_model.parameters(), lr=LR)
 
-    return model
+        # Target model will be a copy of the main model and will not be trained
+        self.target_model.load_state_dict(self.main_model.state_dict())
+        self.target_model.eval()
 
-class Agent:
-    def __init__(self, lr, gamma, action_space, epsilon, sample_size, input_shape,
-                 epsilon_dec=1e-3, epsilon_end=0.01, mem_size=1000000, file_name='dqn_model'):
-                self.action_space = action_space
-                self.gamma = gamma
-                self.epsilon = epsilon
-                self.eps_dec = epsilon_dec
-                self.eps_min = epsilon_end
-                self.sample_size = sample_size
-                self.model_file = file_name
-                self.memory = ExperienceReplay(mem_size)
-                self.dqn_model = build_dqn(lr, action_space.shape[0], input_shape, 400, 300)
-
+    # Agent saves its experiences and learn
     def step(self, state, action, reward, new_state, done):
+        # Stores the transition into Experience Replay
         self.memory.store_transition(state, action, reward, new_state, done)
-        
-        # Start learning only when there are enough sample sizes
-        if len(self.memory) > self.sample_size:
+
+        # Agent will only learn when there are enough experiences
+        if len(self.memory) > BATCH_SIZE:
             self.learn()
 
-    def choose_action(self, observation):
-        if np.random.random() < self.epsilon:
-            action = self.action_space.sample()
-        else:
-            state = np.array([observation])
-            #print(state.shape)
-            #print(observation)
-            actions = self.dqn_model.predict(state)
-            #print(actions[0])
-            #action = np.argmax(actions[0])
-            action = actions[0]
-
-        return action
-    
+    # Agent learns
     def learn(self):
-        states, actions, rewards, next_states, dones = self.memory.sample_memory(self.sample_size)
+        # Sample random minibatch of transitions from Experience Replay
+        state, action, reward, new_state, done = self.memory.sample()
 
-        q_eval = self.dqn_model.predict(states)
-        q_next = self.dqn_model.predict(next_states)    
-        #q_target = np.copy(q_eval)
+        # Computes Q(s_{curr},a') then chooses columns of actions that were taken for each batch
+        q_eval = self.main_model(state).gather(1, action)
+        
+        # Clone the model and use it to generate Q learning targets for the main model
+        # Also predicts the max Q value for the next state
+        q_next = self.target_model(new_state).max(1)[0].detach()
 
-        sample_index = np.arange(self.sample_size, dtype=np.int32)
-        q_target = rewards + (self.gamma*np.max(q_next, axis=1))*dones
+        # Q learning targets = r if next state is terminal or
+        # Q learning targets = r + GAMMA*(Q(s_{next},a')) if next state is not terminal
+        q_target = reward + GAMMA*(q_next) *(1-done)
 
-        self.dqn_model.train_on_batch(states, q_target)
-        self.epsilon = self.epsilon - self.eps_dec if self.epsilon > self.eps_min else self.eps_min
+        # Compute MSE loss
+        loss = F.mse_loss(q_eval, q_target.unsqueeze(1))
 
-    def save_model(self):
-        self.dqn_model.save(self.model_file)
+        # Gradient descent on the loss function and does backpropragation
+        self.optimizer.zero_grad()
+        loss.backward()
+        for param in self.main_model.parameters():
+            # Clip the error term to be between -1 and 1
+            param.grad.data.clamp_(-1,1)
+        self.optimizer.step()
 
-    def load_model(self):
-        self.dqn_model = load_model(self.model_file)
 
+
+    # Action chosen is either a random action or based on the Bellman Equation
+    def choose_action(self, state):
+        # With probability EPSILON, select a random action
+        if np.random.random() < EPSILON:
+            return torch.from_numpy(self.action_space.sample())
+        # Otherwise select the action with the highest Q value
+        else: 
+            state = torch.FloatTensor(state.reshape(1,-1)).to(DEVICE)
+            
+            # action that maximizes r + GAMMA*(Q*(s',a')) based on optimal Q*(s',a')  
+            with torch.no_grad():
+                return self.main_model(state).max(1)[1].view(1,1)
+
+def save_model(model, path):
+    torch.save(model.state_dict(), path)
+
+def load_model(model, path):
+    model.load_state_dict(torch.load(path))
+    return model
 
 def replay_actions(env, actions):
     done = False
@@ -103,50 +144,43 @@ def replay_actions(env, actions):
         env.step(action)
     env.close()
 
-def store_actions(model, actions):
-    actions_file = open(model+'_actions','wb')
+def store_actions(actions, path):
+    actions_file = open(path,'wb')
     pickle.dump(actions, actions_file)
     actions_file.close()
 
-def load_actions(model):
-    actions_file = open(model+'_actions','rb')
+def load_actions(path):
+    actions_file = open(path,'rb')
     actions = pickle.load(actions_file)
     actions_file.close()
 
     return actions
 
+def main():
+    env = gym.make(ENV)
+    state_space = env.observation_space
+    action_space = env.action_space
+    agent = Agent(state_space, action_space)
 
-if '__main__' == __name__:
-    tf.compat.v1.disable_eager_execution()
-    env = gym.make('BipedalWalker-v3')
-    lr = 1e-4
-    n_games = 10000
-
-    agent = Agent(lr=lr, gamma=0.99, action_space=env.action_space, epsilon=1.0,
-                 sample_size=64, input_shape=env.observation_space.shape)
-    
     visual = input("visualize? [y/n]: ")
-    print()
-    load = input("load from model? [y/n]: ")
+    load = input("\nload from model? [y/n]: ")
+
     if load == "y":
-        load = input("input file name to load: ")
-        agent.model_file = load
-        agent.load_model()
-        actions = load_actions(load)
-        print()
-        print("loading model from", load)
-        print()
+        load_path = input("\npath to load from: ")
+        agent.main_model = load_model(agent.main_model, load_path)
+        agent.target_model = load_model(agent.main_model, load_path)
+        actions = load_actions(load_path+'_actions')
+
         if visual == "y": 
             replay_actions(env, actions)
-    
+
+
     max_score = -10000
     max_game = 0
     scores = []
-    eps_history = []
-
     start = datetime.datetime.now()
 
-    for game in range(n_games):
+    for game in range(N_GAMES):
         done = False
         score = 0
         observation = env.reset()
@@ -154,47 +188,63 @@ if '__main__' == __name__:
         episode_start = datetime.datetime.now()
 
         while not done:
+            # Depending on probability of EPSILON, either select a random action or select an action based on the Bellman Equation
             action = agent.choose_action(observation)
-            game_actions.append(action)
-            next_observation, reward, done, info = env.step(action)
-            agent.step(observation, action, reward, next_observation, done)
             
-            score += reward
+            # Execute the action in env and observe reward and next state
+            next_observation, reward, done, info = env.step(action)
+
+            # Stores experiences and learns
+            agent.step(observation, action, reward, next_observation, done)
+
+            # Update variables each step
+            game_actions.append(action)
+            score += float(reward)
             observation = next_observation
+        print(score)  
+        # Every TARGET_UPDATE games, reset the target model to the main model
+        if game % TARGET_UPDATE == 0:
+            agent.target_model.load_state_dict(agent.main_model.state_dict())
 
-        eps_history.append(agent.epsilon)
-        scores.append(score)
+        # Update variables each game
         episode_end = datetime.datetime.now()
-
+        elapsed = episode_end - episode_start
+        scores.append(score)
         avg_score = np.mean(scores[-100:])
-        
+
+        # Checks if the max score has been beaten
         if score > max_score:
             max_score = score
             max_game = game
 
-            agent.model_file = "dqn_walker"
-            agent.save_model()
-            store_actions(agent.model_file, game_actions)
-            print("saving model as", agent.model_file)
-            print()
+            save_model(agent.main_model, MODEL_FILE)
+            store_actions(game_actions, MODEL_FILE+'_actions')
 
-            if visual == "y":
+            if visual == 'y':
                 replay_actions(env, game_actions)
-
-        elapsed = episode_end - episode_start
 
         print('game:', game)
         print('reward:', str(score))
-        print("max game:", str(max_game), "\tmax reward:", str(max_score))
+        print("max reward:", str(max_score), "at game", str(max_game))
         print('average score for the last 100 games:', avg_score)
         print('time:', str(elapsed.total_seconds()),'seconds')
         print()
 
+    # After going through N_GAMES
     end = datetime.datetime.now()
     elapsed = end - start
 
     print('Total time:',elapsed.total_seconds(), 'seconds')
 
-    scores_file = open(agent.model_file+'_scores','wb')
+    scores_file = open(MODEL_FILE+'_scores','wb')
     pickle.dump(scores, scores_file)
     scores_file.close()
+
+        
+
+
+
+        
+
+
+main()
