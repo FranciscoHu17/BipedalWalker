@@ -1,6 +1,6 @@
 # CSE352_Final_Project
 
-## Dependencies:
+## Dependencies
 
 ### If on Windows: 
 - Install Anaconda at https://www.anaconda.com/products/individual
