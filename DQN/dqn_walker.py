@@ -8,6 +8,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import datetime
 import pickle
+import math
 
 
 ENV = "BipedalWalker-v3"
@@ -15,15 +16,17 @@ MODEL_FILE = "./dqn_model"
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Hyperparameters
-N_GAMES = 5000
+N_GAMES = 1000
 MEM_SIZE = 1000000
 BATCH_SIZE = 64
-TARGET_UPDATE = 10
+TARGET_UPDATE = 2
 GAMMA = 0.99
 EPSILON = 1
 EPSILON_DEC = 1e-3
-EPSILON_MIN = 0.01
+EPSILON_MIN = 0.05
 LR = 1e-4
+
+steps_taken = 0
 
 class ExperienceReplay:
     def __init__(self, buffer_size):
@@ -44,9 +47,9 @@ class ExperienceReplay:
         states, actions, rewards, next_states, dones = zip(*sample)
         states = torch.tensor(states).float().to(DEVICE)
         actions = torch.stack(actions).long().to(DEVICE)
-        rewards = torch.tensor(rewards).float().to(DEVICE)
+        rewards = torch.from_numpy(np.array(rewards, dtype=np.float32).reshape(-1, 1)).to(DEVICE)
         next_states = torch.tensor(next_states).float().to(DEVICE)
-        dones = torch.tensor(dones).float().to(DEVICE)
+        dones = torch.from_numpy(np.array(dones, dtype=np.uint8).reshape(-1, 1)).float().to(DEVICE)
         return (states, actions, rewards, next_states, dones)
 
 class QNetwork(nn.Module):
@@ -91,13 +94,13 @@ class Agent():
     def learn(self):
         # Sample random minibatch of transitions from Experience Replay
         state, action, reward, new_state, done = self.memory.sample()
-
+      
         # Computes Q(s_{curr},a') then chooses columns of actions that were taken for each batch
-        q_eval = self.main_model(state).gather(1, action)
-        
+        q_eval = self.main_model(state)
+
         # Clone the model and use it to generate Q learning targets for the main model
         # Also predicts the max Q value for the next state
-        q_next = self.target_model(new_state).max(1)[0].detach()
+        q_next = self.target_model(new_state)
 
         # Q learning targets = r if next state is terminal or
         # Q learning targets = r + GAMMA*(Q(s_{next},a')) if next state is not terminal
@@ -118,8 +121,13 @@ class Agent():
 
     # Action chosen is either a random action or based on the Bellman Equation
     def choose_action(self, state):
+        # EPSILON will esponentially decay
+        global steps_taken 
+        eps_threshold = EPSILON_MIN + (EPSILON - EPSILON_MIN)*math.exp(-1*steps_taken/EPSILON_DEC)
+        steps_taken += 1
+
         # With probability EPSILON, select a random action
-        if np.random.random() < EPSILON:
+        if np.random.random() < eps_threshold:
             return torch.from_numpy(self.action_space.sample())
         # Otherwise select the action with the highest Q value
         else: 
@@ -127,7 +135,7 @@ class Agent():
             
             # action that maximizes r + GAMMA*(Q*(s',a')) based on optimal Q*(s',a')  
             with torch.no_grad():
-                return self.main_model(state).max(1)[1].view(1,1)
+                return self.main_model(state).flatten().cpu().data
 
 def save_model(model, path):
     torch.save(model.state_dict(), path)
@@ -190,7 +198,7 @@ def main():
         while not done:
             # Depending on probability of EPSILON, either select a random action or select an action based on the Bellman Equation
             action = agent.choose_action(observation)
-            
+
             # Execute the action in env and observe reward and next state
             next_observation, reward, done, info = env.step(action)
 
@@ -201,7 +209,7 @@ def main():
             game_actions.append(action)
             score += float(reward)
             observation = next_observation
-        print(score)  
+
         # Every TARGET_UPDATE games, reset the target model to the main model
         if game % TARGET_UPDATE == 0:
             agent.target_model.load_state_dict(agent.main_model.state_dict())
