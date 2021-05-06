@@ -14,8 +14,7 @@ class Actor(nn.Module):
         self.max_actions = max_actions
 
     def forward(self, state):
-        x = self.l1(state)
-        x = F.relu(x)
+        x = F.relu(self.l1(state))
         x = F.relu(self.l2(x))
         x = self.max_actions * torch.tanh(self.l3(x))
         return x
@@ -27,18 +26,17 @@ class Critic(nn.Module):
         super(Critic, self).__init__()
         # Q1. Final layer of Q1 to return single value.
         self.l1 = nn.Linear(state_dim + action_dim, 400)
-        # self.l2 = nn.Linear(action_dim + 400, 300) # Adapted from paper
         self.l2 = nn.Linear(400, 300)
         self.l3 = nn.Linear(300, 1) 
+        
         # Q2. Same as Q1. 
         self.l4 = nn.Linear(state_dim + action_dim, 400)
-        # self.l5 = nn.Linear(400, 300) # Adapted from paper
         self.l5 = nn.Linear(400, 300)
         self.l6 = nn.Linear(300, 1) 
     def forward(self, state, action): 
         # Perform forward pass through NN with the given state
         # and the action to take on this state.
-        # Concate state + action so we have the input value shape to 
+        # Flatten state + action so we have the input value shape to 
         # pass to the NN. 
         sa = torch.cat([state, action], 1) 
 
@@ -47,7 +45,7 @@ class Critic(nn.Module):
         c1 = F.relu(self.l2(c1))
         c1 = self.l3(c1)
 
-        # Q1 value computation.
+        # Q2 value computation.
         c2 = F.relu(self.l4(sa))
         c2 = F.relu(self.l5(c2))
         c2 = self.l6(c2)

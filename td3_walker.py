@@ -34,6 +34,7 @@ def main():
 
     buffer = ExperienceReplay(buffer_size, batch_size, device)
 
+    save_score = 400
     episodes = 650
     timesteps = 2000
 
@@ -60,11 +61,13 @@ def main():
                 print('Episode ', episode,'finished with reward:', avg_reward)
                 print('Finished at timestep ', i)
                 break
-        if(np.mean(scores_over_episodes[-50:]) > 350):
-            print('Saving agent- past 50 scores gave better average score than +350.')
+        
+        if(np.mean(scores_over_episodes[-50:]) > save_score):
+            print('Saving agent- past 50 scores gave better avg than ', save_score)
             best_reward = np.mean(scores_over_episodes[-50:])
+            save_score = best_reward
             policy.save()
-            break # Saved agent so far. Break out of episodes and end. 
+            break # Saved agent. Break out of episodes and end, 400 is pretty good. 
 
         if(episode >= 0 and avg_reward > best_reward):
             print('Saving agent- score for this episode was better than best-known score..')
