@@ -109,7 +109,7 @@ class Agent():
         # Compute MSE loss
         loss = F.mse_loss(q_eval, q_target.unsqueeze(1))
 
-        # Gradient descent on the loss function and does backpropragation
+        # Stochastic gradient descent on the loss function and does backpropragation
         self.optimizer.zero_grad()
         loss.backward()
         for param in self.main_model.parameters():
@@ -133,7 +133,7 @@ class Agent():
         else: 
             state = torch.FloatTensor(state.reshape(1,-1)).to(DEVICE)
             
-            # action that maximizes r + GAMMA*(Q*(s',a')) based on optimal Q*(s',a')  
+            # action that maximizes Q*(s',a';THETA)  
             with torch.no_grad():
                 return self.main_model(state).flatten().cpu().data
 
