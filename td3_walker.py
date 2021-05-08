@@ -27,10 +27,11 @@ def main():
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     policy = TD3(state_dim, action_dim, max_action, env, device)
-    # try:
-    #     policy.load()
-    # except Exception as e:
-    #     print('No previous model to load.')
+    
+    try:
+        policy.load()
+    except Exception as e:
+        print('No previous model to load. Training from scratch.')
 
     buffer = ExperienceReplay(buffer_size, batch_size, device)
 
