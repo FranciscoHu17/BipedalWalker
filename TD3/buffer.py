@@ -9,6 +9,8 @@ class ExperienceReplay:
         self.buffer = deque(maxlen=buffer_size)
         self.batch_size= batch_size
         self.device = device
+        self.ptr = 0
+        print(self.buffer.maxlen)
 
     def __len__(self):
         return len(self.buffer)
@@ -16,7 +18,12 @@ class ExperienceReplay:
     # Add a transition to the memory by basic SARNS convention. 
     def store_transition(self, state, action, reward, new_state, done):
         # If buffer is abuot to overflow, begin rewriting existing memory? 
-        self.buffer.append((state, action, reward, new_state, done))
+        if self.ptr < self.buffer.maxlen:
+            self.buffer.append((state, action, reward, new_state, done))
+        else: 
+            self.buffer[int(self.ptr)] = (state, action, reward, new_state, done)
+            self.ptr = (self.ptr + 1) % self.buffer.maxlen
+
 
     # Sample only the memory that has been stored. Samples BATCH
     # amount of samples. 
