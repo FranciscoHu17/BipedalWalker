@@ -1,6 +1,16 @@
 Q-Learning Sources:
     - 
 DQN Sources:
-    -
+    - https://datascience.stackexchange.com/questions/36450/what-is-the-difference-between-gradient-descent-and-stochastic-gradient-descent
+    - https://ai.stackexchange.com/questions/12255/can-q-learning-be-used-for-continuous-state-or-action-spaces
+    - https://ai.stackexchange.com/questions/20881/what-should-the-target-be-when-the-neural-network-outputs-multiple-q-values-in-d
+    - https://medium.com/@markus.x.buchholz/deep-reinforcement-learning-introduction-deep-q-network-dqn-algorithm-fb74bf4d6862
+    - https://towardsdatascience.com/reinforcement-learning-markov-decision-process-part-2-96837c936ec3
+    - https://towardsdatascience.com/deep-reinforcement-learning-build-a-deep-q-network-dqn-to-play-cartpole-with-tensorflow-2-and-gym-8e105744b998
+    - https://towardsdatascience.com/how-the-bellman-equation-works-in-deep-reinforcement-learning-5301fe41b25a
+    - https://towardsdatascience.com/deep-q-network-dqn-i-bce08bdf2af
+    - https://towardsdatascience.com/deep-q-network-dqn-ii-b6bf911b6b2c
+    - https://towardsdatascience.com/deep-q-network-dqn-iii-c5a83b0338d2
+    - https://towardsdatascience.com/teach-your-ai-how-to-walk-5ad55fce8bca
 TD3 Sources:
     -
