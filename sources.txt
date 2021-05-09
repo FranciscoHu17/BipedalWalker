@@ -1,7 +1,9 @@
 These are extra sources we used in the implementation of our program
 
 Q-Learning Sources:
-    - 
+    - https://www.geeksforgeeks.org/q-learning-in-python/?fbclid=IwAR3IuiUmXwy8YqtQgzDKFXbfdQPx7LDTUNJoZCgrzv443DRov_ZQUirGPI0
+    - https://towardsdatascience.com/simple-reinforcement-learning-q-learning-fcddc4b6fe56
+    - https://towardsdatascience.com/a-beginners-guide-to-q-learning-c3e2a30a653c
 DQN Sources:
     - https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html
     - https://datascience.stackexchange.com/questions/36450/what-is-the-difference-between-gradient-descent-and-stochastic-gradient-descent
