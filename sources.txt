@@ -13,4 +13,8 @@ DQN Sources:
     - https://towardsdatascience.com/deep-q-network-dqn-iii-c5a83b0338d2
     - https://towardsdatascience.com/teach-your-ai-how-to-walk-5ad55fce8bca
 TD3 Sources:
-    -
+    - http://bicmr.pku.edu.cn/~wenzw/bigdata/lect-dyna3w.pdf
+    - https://lilianweng.github.io/lil-log/2018/04/08/policy-gradient-algorithms.html#td3
+    - https://stable-baselines.readthedocs.io/en/master/modules/td3.html
+    - https://github.com/sfujim/TD3
+    - https://www.geeksforgeeks.org/q-learning-in-python/
