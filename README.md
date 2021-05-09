@@ -1,6 +1,7 @@
 # CSE352_Final_Project
 
 ## Dependencies
+Python version 3.5 to 3.8
 
 ### If on Windows: 
 - Install Anaconda at https://www.anaconda.com/products/individual
