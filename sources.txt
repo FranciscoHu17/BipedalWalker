@@ -1,6 +1,9 @@
+These are extra sources we used in the implementation of our program
+
 Q-Learning Sources:
     - 
 DQN Sources:
+    - https://pytorch.org/tutorials/intermediate/reinforcement_q_learning.html
     - https://datascience.stackexchange.com/questions/36450/what-is-the-difference-between-gradient-descent-and-stochastic-gradient-descent
     - https://ai.stackexchange.com/questions/12255/can-q-learning-be-used-for-continuous-state-or-action-spaces
     - https://ai.stackexchange.com/questions/20881/what-should-the-target-be-when-the-neural-network-outputs-multiple-q-values-in-d
