@@ -3,4 +3,8 @@ Q-Learning Sources:
 DQN Sources:
     -
 TD3 Sources:
-    -
+    - http://bicmr.pku.edu.cn/~wenzw/bigdata/lect-dyna3w.pdf
+    - https://lilianweng.github.io/lil-log/2018/04/08/policy-gradient-algorithms.html#td3
+    - https://stable-baselines.readthedocs.io/en/master/modules/td3.html
+    - https://github.com/sfujim/TD3
+    - https://www.geeksforgeeks.org/q-learning-in-python/
