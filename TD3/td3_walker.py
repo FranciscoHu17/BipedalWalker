@@ -24,11 +24,16 @@ def main():
     buffer_size = 1000000
     batch_size = 100
     noise = 0.1
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    # Uncomment to use GPU, but errors exist if GPU is not supported anymore.
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    device = torch.device("cpu")
 
     policy = TD3(state_dim, action_dim, max_action, env, device)
     
     try:
+        print("Loading previous model")
         policy.load()
     except Exception as e:
         print('No previous model to load. Training from scratch.')
