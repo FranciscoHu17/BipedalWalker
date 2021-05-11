@@ -43,3 +43,24 @@ pip install -e .[box2d]
 
 
 More information on installing OpenAI Gym API at https://github.com/openai/gym#installation
+
+
+### Running the Code:
+- Q-Learning
+```
+# From the root directory:
+cd Q-Learning
+python QLearningWalker.py
+```
+- DQN
+```
+# From the root directory:
+cd DQN
+python dqn_walker.py
+```
+- TD3:
+```
+# From the root directory:
+cd TD3
+python td3_walker.py
+```
