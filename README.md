@@ -1,7 +1,7 @@
 # BipedalWalker
 
 ## About
-In this project, we utilized three reinforcement learning algorithms to teach our agent to walk which were Q-learning, Deep Q-Network (DQN), and Twin Delayed DDPG (TD3). The agent we used was from a OpenAI Gym environment called BipedalWalker-v3. The objective of the agent is to get a score of 300 or higher without falling. The score is defined as the cumulative rewards gathered for a particular episode. It is calculated as a function of the agents movements and if the agent were to fall, then it would get a score of -100. More information at https://gym.openai.com/envs/BipedalWalker-v2/
+In this project, we utilized three reinforcement learning algorithms to teach our agent to walk which were Q-learning, Deep Q-Network (DQN), and Twin Delayed DDPG (TD3). The agent we used was from the OpenAI Gym environment called BipedalWalker-v3. The objective of the agent is to get a score of 300 or higher without falling. The score is defined as the cumulative rewards gathered for a particular episode. It is calculated as a function of the agents movements and if the agent were to fall, then it would get a score of -100. More information at https://gym.openai.com/envs/BipedalWalker-v2/
 
 We evaluated the performances of our algorithms with a comprehensive academic report. This could be found at https://github.com/FranciscoHu17/BipedalWalker/blob/main/BipedalWalkerReport.pdf
 
