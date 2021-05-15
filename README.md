@@ -45,7 +45,7 @@ pip install -e .[box2d]
 More information on installing OpenAI Gym API at https://github.com/openai/gym#installation
 
 
-### Running the Code:
+## Running the Code:
 - Q-Learning
 ```
 # From the root directory:
@@ -64,3 +64,6 @@ python dqn_walker.py
 cd TD3
 python td3_walker.py
 ```
+
+## Report
+We evaluated the performances of our algorithms with a comprehensive academic report. This could be found at https://github.com/FranciscoHu17/BipedalWalker/blob/main/BipedalWalkerReport.pdf
