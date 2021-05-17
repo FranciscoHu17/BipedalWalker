@@ -50,7 +50,7 @@ pip install -e .[box2d]
 More information on installing OpenAI Gym API at https://github.com/openai/gym#installation
 
 
-## Running the Code:
+## Running the Code
 - Q-Learning
 ```
 # From the root directory:
