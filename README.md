@@ -6,7 +6,7 @@ In this project, we utilized three reinforcement learning algorithms to teach ou
 We evaluated the performances of our algorithms with a comprehensive academic report. This could be found at https://github.com/FranciscoHu17/BipedalWalker/blob/main/BipedalWalkerReport.pdf
 
 ## Dependencies
-Python version 3.5 to 3.8
+Requires Python version 3.5 to 3.8
 
 ### If on Windows: 
 - Install Anaconda at https://www.anaconda.com/products/individual
